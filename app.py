@@ -1,4 +1,4 @@
-import streamlit as st
+ import streamlit as st
 import pandas as pd
 import yfinance as yf
 from datetime import datetime
@@ -41,16 +41,14 @@ if not st.session_state.authenticated:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.text_input("Master Password:", type="password", key="password_input", on_change=check_password)
-    st.stop()
-
-# --- 2. MAIN DASHBOARD HEADER ---
-st.markdown("<h2 style='color: #2ea043;'>🚀 Ultimate AI Trading Command Center (Supabase Live Connected)</h2>", unsafe_allow_html=True)
+    st.stop()# --- 2. MAIN DASHBOARD HEADER ---
+st.markdown("<h2 style='color: #2ea043;'>🚀 Ultimate AI Trading Command Center (100% Zero Hardcoding)</h2>", unsafe_allow_html=True)
 st.markdown("---")
 
 # --- 3. SIDEBAR: LIVE CONFIGURATION & API PANEL ---
 with st.sidebar:
     st.header("⚙️ Live Settings & Backend")
-    st.markdown("Yahan apni asli keys dalein taaki app 100% live kaam kare.")
+    st.markdown("Yahan apni asli keys dalein taaki app live connect ho.")
     
     gemini_key_input = st.text_input("Google Gemini API Key:", type="password")
     supabase_url_input = st.text_input("Supabase URL:")
@@ -59,47 +57,78 @@ with st.sidebar:
     if st.button("Save & Connect Live"):
         if supabase_url_input and supabase_key_input:
             try:
-                # Initialize Supabase Client
                 supabase: Client = create_client(supabase_url_input, supabase_key_input)
                 st.session_state.supabase = supabase
                 st.session_state.connected = True
-                st.success("Successfully Connected to Supabase & Real Backend!")
+                st.success("Successfully Connected to Supabase!")
             except Exception as e:
                 st.error(f"Connection Error: {e}")
         else:
             st.warning("Kripya Supabase URL aur Key zaroor bharein.")
 
 if "connected" not in st.session_state:
-    st.session_state.connected = False
-
-# --- 4. DASHBOARD LAYOUT & REAL WIDGETS ---
+    st.session_state.connected = False# --- 4. DASHBOARD LAYOUT (ZERO HARDCODING) ---
 if not st.session_state.connected:
-    st.warning("⚠️ App abhi disconnected hai. Kripya left sidebar mein apni Supabase details daal kar 'Save & Connect Live' par click karein.")
+    st.warning("⚠️ App disconnected hai. Left sidebar mein apni Supabase details daal kar connect karein.")
 else:
-    st.success("🟢 Live Backend Active: Real Market Data & Supabase Database Connected.")
+    st.success("🟢 Live Backend Active: Zero Hardcoded Data Mode.")
     
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.subheader("📈 Live Market Ticker (Real-Time NSE)")
-        try:
-            # Asli live market data fetching using yfinance
-            ticker = yf.Ticker("^NSEI")
-            df = ticker.history(period="1d")
-            if not df.empty:
-                latest_price = df['Close'].iloc[-1]
-                st.metric(label="NIFTY 50 Live Price", value=f"₹{latest_price:.2f}")
-            else:
-                st.info("Market data load ho raha hai...")
-        except Exception as e:
-            st.error(f"Data fetch karne mein error: {e}")
+        st.subheader("📈 Live Market Ticker (Dynamic Lookup)")
+        # Absolutely blank input - zero hardcoded stocks
+        custom_ticker = st.text_input("Enter Stock Symbol (e.g., RELIANCE.NS, TCS.NS, ^NSEI):", value="")
+        
+        if custom_ticker:
+            try:
+                ticker = yf.Ticker(custom_ticker.strip())
+                df = ticker.history(period="1d")
+                if not df.empty:
+                    latest_price = df['Close'].iloc[-1]
+                    st.metric(label=f"Live Price: {custom_ticker.upper()}", value=f"₹{latest_price:.2f}")
+                else:
+                    st.warning(f"'{custom_ticker}' ka data nahi mila. Sahi symbol dalein.")
+            except Exception as e:
+                st.error(f"Data fetch karne mein error: {e}")
+        else:
+            st.info("Kripya upar wale box mein koi bhi stock symbol type karein (jaise RELIANCE.NS).")
 
     with col2:
-        st.subheader("💾 Supabase Trade Logger (Cloud INSERT)")
-        stock_name = st.selectbox("Select Stock", ["SBIN.NS", "RELIANCE.NS", "TATASTEEL.NS"])
-        qty = st.number_input("Quantity", min_value=1, value=10)
-        buy_price = st.number_input("Entry Price (₹)", min_value=1.0, value=500.0)
+        st.subheader("💾 Supabase Trade Logger")
+        # Completely blank fields - zero preset values
+        stock_name = st.text_input("Stock Name:", value="")
+        qty = st.number_input("Quantity", min_value=0, value=0)
+        buy_price = st.number_input("Entry Price (₹)", min_value=0.0, value=0.0, format="%.2f")
         
         if st.button("Save Trade to Supabase Database"):
-            try:
-                # Asli Supabase Cloud Table
+            if stock_name and qty > 0 and buy_price > 0:
+                try:
+                    supabase = st.session_state.supabase
+                    data = {
+                        "stock_name": stock_name.strip().upper(),
+                        "quantity": int(qty),
+                        "buy_price": float(buy_price),
+                        "created_at": str(datetime.now())
+                    }
+                    response = supabase.table("trades").insert(data).execute()st.success(f"✅ Trade successfully saved to Supabase cloud!")
+                except Exception as e:
+                    st.error(f"Database Save Error: {e}")
+            else:
+                st.warning("Kripya stock name, quantity aur price saari fields sahi se bharein.")
+
+    st.markdown("---")
+    st.subheader("📊 Live Trade History from Supabase Cloud")
+    
+    try:
+        supabase = st.session_state.supabase
+        response = supabase.table("trades").select("*").execute()
+        trades_data = response.data
+        
+        if trades_data:
+            df_trades = pd.DataFrame(trades_data)
+            st.dataframe(df_trades, use_container_width=True)
+        else:
+            st.info("Database bilkul khali hai. Upar form se trade save karne par yahan live dikhega.")
+    except Exception as e:
+        st.info("Supabase table 'trades' se data fetch karne mein wait kiya ja raha hai.")
