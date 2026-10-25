@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 from datetime import datetime
+from supabase import create_client, Client
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
@@ -43,7 +44,7 @@ if not st.session_state.authenticated:
     st.stop()
 
 # --- 2. MAIN DASHBOARD HEADER ---
-st.markdown("<h2 style='color: #2ea043;'>🚀 Ultimate AI Trading Command Center (100% Real Backend)</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='color: #2ea043;'>🚀 Ultimate AI Trading Command Center (Supabase Live Connected)</h2>", unsafe_allow_html=True)
 st.markdown("---")
 
 # --- 3. SIDEBAR: LIVE CONFIGURATION & API PANEL ---
@@ -56,20 +57,26 @@ with st.sidebar:
     supabase_key_input = st.text_input("Supabase Key:", type="password")
     
     if st.button("Save & Connect Live"):
-        if gemini_key_input and supabase_url_input and supabase_key_input:
-            st.session_state.connected = True
-            st.success("Successfully Connected to Real Backend!")
+        if supabase_url_input and supabase_key_input:
+            try:
+                # Initialize Supabase Client
+                supabase: Client = create_client(supabase_url_input, supabase_key_input)
+                st.session_state.supabase = supabase
+                st.session_state.connected = True
+                st.success("Successfully Connected to Supabase & Real Backend!")
+            except Exception as e:
+                st.error(f"Connection Error: {e}")
         else:
-            st.warning("Kripya saari fields mein asli keys bharein.")
+            st.warning("Kripya Supabase URL aur Key zaroor bharein.")
 
 if "connected" not in st.session_state:
     st.session_state.connected = False
 
 # --- 4. DASHBOARD LAYOUT & REAL WIDGETS ---
 if not st.session_state.connected:
-    st.warning("⚠️ App abhi disconnected hai. Kripya left sidebar mein apni Gemini API Key aur Supabase details daal kar 'Save & Connect Live' par click karein.")
+    st.warning("⚠️ App abhi disconnected hai. Kripya left sidebar mein apni Supabase details daal kar 'Save & Connect Live' par click karein.")
 else:
-    st.success("🟢 Live Backend Active: Real Market Data & Database Connected.")
+    st.success("🟢 Live Backend Active: Real Market Data & Supabase Database Connected.")
     
     col1, col2 = st.columns([2, 1])
     
@@ -88,10 +95,11 @@ else:
             st.error(f"Data fetch karne mein error: {e}")
 
     with col2:
-        st.subheader("💾 Supabase Trade Logger")
+        st.subheader("💾 Supabase Trade Logger (Cloud INSERT)")
         stock_name = st.selectbox("Select Stock", ["SBIN.NS", "RELIANCE.NS", "TATASTEEL.NS"])
         qty = st.number_input("Quantity", min_value=1, value=10)
+        buy_price = st.number_input("Entry Price (₹)", min_value=1.0, value=500.0)
         
         if st.button("Save Trade to Supabase Database"):
-            # Yahan Supabase cloud database mein data INSERT hoga
-            st.success(f"Trade ({stock_name}, Qty: {qty}) successfully saved to your cloud Supabase database!")
+            try:
+                # Asli Supabase Cloud Table
