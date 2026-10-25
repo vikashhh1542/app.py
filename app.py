@@ -1,8 +1,9 @@
- import streamlit as st
+import streamlit as st
 import pandas as pd
 import yfinance as yf
 from datetime import datetime
 from supabase import create_client, Client
+import google.generativeai as genai
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
@@ -41,8 +42,10 @@ if not st.session_state.authenticated:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.text_input("Master Password:", type="password", key="password_input", on_change=check_password)
-    st.stop()# --- 2. MAIN DASHBOARD HEADER ---
-st.markdown("<h2 style='color: #2ea043;'>🚀 Ultimate AI Trading Command Center (100% Zero Hardcoding)</h2>", unsafe_allow_html=True)
+    st.stop()
+
+# --- 2. MAIN DASHBOARD HEADER ---
+st.markdown("<h2 style='color: #2ea043;'>🚀 Ultimate AI Trading Command Center (100% Dynamic & Master Code)</h2>", unsafe_allow_html=True)
 st.markdown("---")
 
 # --- 3. SIDEBAR: LIVE CONFIGURATION & API PANEL ---
@@ -60,14 +63,23 @@ with st.sidebar:
                 supabase: Client = create_client(supabase_url_input, supabase_key_input)
                 st.session_state.supabase = supabase
                 st.session_state.connected = True
-                st.success("Successfully Connected to Supabase!")
+                
+                if gemini_key_input:
+                    genai.configure(api_key=gemini_key_input.strip())
+                    st.session_state.gemini_active = True
+                else:
+                    st.session_state.gemini_active = False
+                    
+                st.success("Successfully Connected to Backend & Supabase!")
             except Exception as e:
                 st.error(f"Connection Error: {e}")
         else:
             st.warning("Kripya Supabase URL aur Key zaroor bharein.")
 
 if "connected" not in st.session_state:
-    st.session_state.connected = False# --- 4. DASHBOARD LAYOUT (ZERO HARDCODING) ---
+    st.session_state.connected = False
+if "gemini_active" not in st.session_state:
+    st.session_state.gemini_active = False# --- 4. DASHBOARD LAYOUT (ZERO HARDCODING) ---
 if not st.session_state.connected:
     st.warning("⚠️ App disconnected hai. Left sidebar mein apni Supabase details daal kar connect karein.")
 else:
@@ -77,7 +89,7 @@ else:
     
     with col1:
         st.subheader("📈 Live Market Ticker (Dynamic Lookup)")
-        # Absolutely blank input - zero hardcoded stocks
+        # Completely blank - zero hardcoding
         custom_ticker = st.text_input("Enter Stock Symbol (e.g., RELIANCE.NS, TCS.NS, ^NSEI):", value="")
         
         if custom_ticker:
@@ -92,11 +104,11 @@ else:
             except Exception as e:
                 st.error(f"Data fetch karne mein error: {e}")
         else:
-            st.info("Kripya upar wale box mein koi bhi stock symbol type karein (jaise RELIANCE.NS).")
+            st.info("Kripya upar wale box mein koi bhi stock symbol type karein.")
 
     with col2:
         st.subheader("💾 Supabase Trade Logger")
-        # Completely blank fields - zero preset values
+        # Completely blank inputs
         stock_name = st.text_input("Stock Name:", value="")
         qty = st.number_input("Quantity", min_value=0, value=0)
         buy_price = st.number_input("Entry Price (₹)", min_value=0.0, value=0.0, format="%.2f")
@@ -111,11 +123,33 @@ else:
                         "buy_price": float(buy_price),
                         "created_at": str(datetime.now())
                     }
-                    response = supabase.table("trades").insert(data).execute()st.success(f"✅ Trade successfully saved to Supabase cloud!")
+                    response = supabase.table("trades").insert(data).execute()
+                    st.success(f"✅ Trade successfully saved to Supabase cloud!")
                 except Exception as e:
                     st.error(f"Database Save Error: {e}")
             else:
-                st.warning("Kripya stock name, quantity aur price saari fields sahi se bharein.")
+                st.warning("Kripya saari fields sahi se bharein.")
+
+    st.markdown("---")
+    
+    # --- 5. GOOGLE GEMINI AI ASSISTANT SECTION ---
+    st.subheader("🤖 Google Gemini AI Market Analyst")
+    if not st.session_state.gemini_active:
+        st.info("💡 AI Assistant use karne ke liye left sidebar mein apni Google Gemini API Key daal kar 'Save & Connect Live' par click karein.")
+    else:
+        ai_query = st.text_area("Apna sawal yahan type karein (e.g., Share market ke baare mein ya kisi stock ki analysis):", value="")
+        if st.button("Ask Gemini AI"):
+            if ai_query:
+                try:
+                    with st.spinner("Gemini AI soch raha hai..."):
+                        model = genai.GenerativeModel("gemini-1.5-flash")
+                        model_response = model.generate_content(ai_query)
+                        st.markdown("### 🧠 AI Response:")
+                        st.write(model_response.text)
+                except Exception as e:
+                    st.error(f"AI Error: {e}")
+            else:
+                st.warning("Kripya pehle kuch type karein.")
 
     st.markdown("---")
     st.subheader("📊 Live Trade History from Supabase Cloud")
